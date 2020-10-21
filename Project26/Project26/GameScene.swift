@@ -5,17 +5,21 @@
 //  Created by Álvaro Ávalos Hernández on 20/10/20.
 //
 
+import CoreMotion
 import SpriteKit
 
 class GameScene: SKScene {
     
+    var player: SKSpriteNode!
+    var lastTouchPosition: CGPoint?
+    var motionManager: CMMotionManager!
+    
     override func didMove(to view: SKView) {
+        physicsWorld.gravity = .zero
+        motionManager = CMMotionManager()
+        motionManager.startAccelerometerUpdates()
         loadLevel()
     }
-    
-    ///La propiedad categoryBitMask es un número que define el tipo de objeto para considerar colisiones.
-    ///La propiedad collisionBitMask es un número que define con qué categorías de objeto debe colisionar este nodo,
-    ///La propiedad contactTestBitMask es un número que define las colisiones sobre las que queremos ser notificados.
     
     func loadLevel() {
         guard let levelURL = Bundle.main.url(forResource: "level1", withExtension: "txt") else {
@@ -26,6 +30,7 @@ class GameScene: SKScene {
         }
 
         let lines = levelString.components(separatedBy: "\n")
+        
         let spriteNodes = SpriteNodes()
         var node = SKSpriteNode()
         node = spriteNodes.createBackground()
@@ -58,7 +63,41 @@ class GameScene: SKScene {
                 }
             }
         }
+        
+        player = spriteNodes.createPlayer()
+        addChild(player)
     }
     
+}
+
+extension GameScene {
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        lastTouchPosition = location
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        lastTouchPosition = location
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        lastTouchPosition = nil
+    }
+    
+    override func update(_ currentTime: TimeInterval) {
+        #if targetEnvironment(simulator)
+            if let currentTouch = lastTouchPosition {
+                let diff = CGPoint(x: currentTouch.x - player.position.x, y: currentTouch.y - player.position.y)
+                physicsWorld.gravity = CGVector(dx: diff.x / 100, dy: diff.y / 100)
+            }
+        #else
+            if let accelerometerData = motionManager.accelerometerData {
+                physicsWorld.gravity = CGVector(dx: accelerometerData.acceleration.y * -50, dy: accelerometerData.acceleration.x * 50)
+            }
+        #endif
+    }
     
 }
