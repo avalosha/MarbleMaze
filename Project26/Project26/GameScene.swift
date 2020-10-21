@@ -13,12 +13,34 @@ class GameScene: SKScene {
     var player: SKSpriteNode!
     var lastTouchPosition: CGPoint?
     var motionManager: CMMotionManager!
+    var scoreLabel: SKLabelNode!
+
+    var score = 0 {
+        didSet {
+            scoreLabel.text = "Score: \(score)"
+        }
+    }
+    
+    var isGameOver = false
+    let spriteNodes = SpriteNodes()
     
     override func didMove(to view: SKView) {
         physicsWorld.gravity = .zero
         motionManager = CMMotionManager()
         motionManager.startAccelerometerUpdates()
+        
+        let background = spriteNodes.createBackground()
+        addChild(background)
+        
+        scoreLabel = spriteNodes.addLabel()
+        addChild(scoreLabel)
+        
         loadLevel()
+        
+        player = spriteNodes.createPlayer()
+        addChild(player)
+        
+        physicsWorld.contactDelegate = self
     }
     
     func loadLevel() {
@@ -31,10 +53,7 @@ class GameScene: SKScene {
 
         let lines = levelString.components(separatedBy: "\n")
         
-        let spriteNodes = SpriteNodes()
         var node = SKSpriteNode()
-        node = spriteNodes.createBackground()
-        addChild(node)
 
         for (row, line) in lines.reversed().enumerated() {
             for (column, letter) in line.enumerated() {
@@ -63,9 +82,6 @@ class GameScene: SKScene {
                 }
             }
         }
-        
-        player = spriteNodes.createPlayer()
-        addChild(player)
     }
     
 }
@@ -88,6 +104,8 @@ extension GameScene {
     }
     
     override func update(_ currentTime: TimeInterval) {
+        guard isGameOver == false else { return }
+        
         #if targetEnvironment(simulator)
             if let currentTouch = lastTouchPosition {
                 let diff = CGPoint(x: currentTouch.x - player.position.x, y: currentTouch.y - player.position.y)
@@ -100,4 +118,41 @@ extension GameScene {
         #endif
     }
     
+}
+
+extension GameScene: SKPhysicsContactDelegate {
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        guard let nodeA = contact.bodyA.node else { return }
+        guard let nodeB = contact.bodyB.node else { return }
+
+        if nodeA == player {
+            playerCollided(with: nodeB)
+        } else if nodeB == player {
+            playerCollided(with: nodeA)
+        }
+    }
+    
+    func playerCollided(with node: SKNode) {
+        if node.name == "vortex" {
+            player.physicsBody?.isDynamic = false
+            isGameOver = true
+            score -= 1
+
+            let move = SKAction.move(to: node.position, duration: 0.25)
+            let scale = SKAction.scale(to: 0.0001, duration: 0.25)
+            let remove = SKAction.removeFromParent()
+            let sequence = SKAction.sequence([move, scale, remove])
+
+            player.run(sequence) { [weak self] in
+                self?.player = self?.spriteNodes.createPlayer()
+                self?.isGameOver = false
+            }
+        } else if node.name == "star" {
+            node.removeFromParent()
+            score += 1
+        } else if node.name == "finish" {
+            // next level?
+        }
+    }
 }
