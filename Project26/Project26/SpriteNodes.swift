@@ -99,7 +99,7 @@ class SpriteNodes {
         return player
     }
     
-    func addLabel() -> SKLabelNode {
+    func addScoreLabel() -> SKLabelNode {
         let scoreLabel = SKLabelNode(fontNamed: "Chalkduster")
         scoreLabel.text = "Score: 0"
         scoreLabel.horizontalAlignmentMode = .left
@@ -107,6 +107,16 @@ class SpriteNodes {
         scoreLabel.zPosition = 2
         
         return scoreLabel
+    }
+    
+    func addGameOverLabel() -> SKLabelNode {
+        let gameOverLabel = SKLabelNode(fontNamed: "Chalkduster")
+        gameOverLabel.text = "Game Over"
+        gameOverLabel.horizontalAlignmentMode = .center
+        gameOverLabel.position = CGPoint(x: 512, y: 384)
+        gameOverLabel.zPosition = 2
+        
+        return gameOverLabel
     }
     
 }

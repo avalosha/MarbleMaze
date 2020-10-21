@@ -23,6 +23,7 @@ class GameScene: SKScene {
     
     var isGameOver = false
     let spriteNodes = SpriteNodes()
+    var gameOverLabel: SKLabelNode!
     
     override func didMove(to view: SKView) {
         physicsWorld.gravity = .zero
@@ -32,7 +33,7 @@ class GameScene: SKScene {
         let background = spriteNodes.createBackground()
         addChild(background)
         
-        scoreLabel = spriteNodes.addLabel()
+        scoreLabel = spriteNodes.addScoreLabel()
         addChild(scoreLabel)
         
         loadLevel()
@@ -144,15 +145,29 @@ extension GameScene: SKPhysicsContactDelegate {
             let remove = SKAction.removeFromParent()
             let sequence = SKAction.sequence([move, scale, remove])
 
-            player.run(sequence) { [weak self] in
-                self?.player = self?.spriteNodes.createPlayer()
-                self?.isGameOver = false
+            if score >= 0 {
+                player.run(sequence) { [weak self] in
+                    self?.player = self?.spriteNodes.createPlayer()
+                    self?.addChild((self?.player)!)
+                    self?.isGameOver = false
+                }
+            } else {
+                player.run(sequence)
+                finishLevel()
             }
         } else if node.name == "star" {
             node.removeFromParent()
             score += 1
         } else if node.name == "finish" {
             // next level?
+            isGameOver = true
+            finishLevel()
         }
+    }
+    
+    func finishLevel() {
+        scoreLabel.removeFromParent()
+        gameOverLabel = spriteNodes.addGameOverLabel()
+        addChild(gameOverLabel)
     }
 }
